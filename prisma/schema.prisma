@@ -1,0 +1,500 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// 1. USERS, ROLES & AUTHENTICATION
+// ==========================================
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique // 'admin', 'editor', 'moderator', 'user'
+  description String?
+  users       User[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique // e.g., 'translations.manage', 'users.manage'
+  description String?
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  passwordHash        String?
+  name                String?
+  status              String    @default("active") // 'active', 'suspended', 'pending'
+  emailVerified       Boolean   @default(false)
+  verificationToken   String?   @unique
+  resetToken          String?   @unique
+  resetTokenExpiresAt DateTime?
+  googleId            String?   @unique
+  roleId              String
+  role                Role      @relation(fields: [roleId], references: [id])
+  dailyAiLimit        Int       @default(50)
+  monthlyAiLimit      Int       @default(500)
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  profile             UserProfile?
+  preferences         UserPreference?
+  notes               UserNote[]
+  noteFolders         NoteFolder[]
+  bookmarks           Bookmark[]
+  highlights          Highlight[]
+  readingHistory      ReadingHistory[]
+  readingPlanProgress ReadingPlanProgress[]
+  audioHistory        AudioHistory[]
+  aiConversations     AiConversation[]
+  adminLogs           AdminActivityLog[]
+  analyticsEvents     AnalyticsEvent[]
+
+  @@index([email])
+  @@index([status])
+}
+
+model UserProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName         String?
+  avatarUrl           String?
+  bio                 String?
+  favoriteTranslation String   @default("WEB")
+  streakDays          Int      @default(0)
+  lastReadDate        DateTime?
+  updatedAt           DateTime @updatedAt
+}
+
+model UserPreference {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme             String   @default("light") // 'light', 'dark', 'sepia'
+  fontSize          Int      @default(18)
+  fontFamily        String   @default("serif") // 'serif', 'sans', 'literata', 'georgia'
+  lineSpacing       Float    @default(1.75)
+  verseSpacing      Int      @default(10)
+  readingBackground String   @default("warm-cream") // 'warm-cream', 'pure-white', 'soft-gray', 'night-navy'
+  brightness        Int      @default(100)
+  defaultAudioSpeed Float    @default(1.0)
+  updatedAt         DateTime @updatedAt
+}
+
+// ==========================================
+// 2. BIBLE TRANSLATIONS, PROVIDERS & CONTENT
+// ==========================================
+
+model BibleProvider {
+  id          String             @id @default(cuid())
+  name        String             @unique // 'Local Public Domain', 'API.Bible', 'ESV API', 'Bolls.life'
+  slug        String             @unique // 'local-pd', 'api-bible', 'esv-api', 'custom'
+  baseUrl     String?
+  apiKeyEnc   String?            // Encrypted API key if required
+  isActive    Boolean            @default(true)
+  notes       String?
+  translations BibleTranslation[]
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+model BibleTranslation {
+  id                 String               @id @default(cuid())
+  abbreviation       String               @unique // e.g., 'KJV', 'NKJV', 'ESV'
+  fullName           String
+  publisher          String?
+  copyrightInfo      String?
+  licenseInfo        String?
+  providerId         String?
+  provider           BibleProvider?       @relation(fields: [providerId], references: [id])
+  externalBibleId    String?              // Provider's internal ID for this translation
+  availabilityStatus String               @default("coming_soon") // 'available', 'coming_soon', 'not_yet_licensed', 'inactive'
+  isActive           Boolean              @default(false)
+  testamentAvail     String               @default("OT_NT") // 'OT_NT', 'NT_ONLY', 'OT_ONLY'
+  audioAvailable     Boolean              @default(false)
+  displayOrder       Int                  @default(100)
+  language           String               @default("en")
+  allowAiContext     Boolean              @default(false) // Only true for public domain or explicitly permitted translations
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  licenses           TranslationLicense[]
+  verses             BibleVerse[]
+  audioTracks        AudioTrack[]
+
+  @@index([isActive, displayOrder])
+}
+
+model TranslationLicense {
+  id            String           @id @default(cuid())
+  translationId String
+  translation   BibleTranslation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+  licenseType   String           // 'Public Domain', 'Creative Commons', 'Commercial API', 'Publisher Agreement'
+  licensor      String?
+  permitText    Boolean          @default(false)
+  permitAudio   Boolean          @default(false)
+  permitAi      Boolean          @default(false)
+  permitCache   Boolean          @default(false)
+  expiresAt     DateTime?
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model BibleBook {
+  id           Int            @id // 1 to 66
+  osisCode     String         @unique // e.g., 'Gen', 'Exod', 'Matt', 'Rev'
+  name         String         @unique // 'Genesis', 'Exodus', ...
+  testament    String         // 'OT' or 'NT'
+  category     String         // 'Law', 'History', 'Poetry', 'Major Prophets', 'Minor Prophets', 'Gospels', 'Acts', 'Epistles', 'Prophecy'
+  chapterCount Int
+  displayOrder Int            @unique
+  chapters     BibleChapter[]
+  verses       BibleVerse[]
+  audioTracks  AudioTrack[]
+
+  @@index([testament, displayOrder])
+}
+
+model BibleChapter {
+  id         String    @id @default(cuid())
+  bookId     Int
+  book       BibleBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterNum Int
+  verseCount Int       @default(0)
+  summary    String?
+
+  @@unique([bookId, chapterNum])
+  @@index([bookId])
+}
+
+model BibleVerse {
+  id            String           @id @default(cuid())
+  translationId String
+  translation   BibleTranslation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+  bookId        Int
+  book          BibleBook        @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterNum    Int
+  verseNum      Int
+  text          String           @db.Text
+
+  @@unique([translationId, bookId, chapterNum, verseNum])
+  @@index([translationId, bookId, chapterNum])
+  @@index([bookId, chapterNum, verseNum])
+}
+
+// ==========================================
+// 3. AUDIO SOURCES & PLAYBACK HISTORY
+// ==========================================
+
+model AudioSource {
+  id               String       @id @default(cuid())
+  name             String       @unique
+  providerType     String       // 'licensed_mp3', 'bible_brain', 'permitted_tts', 'custom_cdn'
+  baseUrl          String?
+  apiKeyEnc        String?
+  licenseConfirmed Boolean      @default(false)
+  isActive         Boolean      @default(true)
+  notes            String?
+  tracks           AudioTrack[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model AudioTrack {
+  id            String           @id @default(cuid())
+  audioSourceId String
+  audioSource   AudioSource      @relation(fields: [audioSourceId], references: [id], onDelete: Cascade)
+  translationId String
+  translation   BibleTranslation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+  bookId        Int
+  book          BibleBook        @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterNum    Int
+  verseNum      Int?             // Null means full-chapter audio
+  audioUrl      String
+  durationSec   Int?
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+
+  @@unique([translationId, bookId, chapterNum, verseNum, audioSourceId])
+  @@index([translationId, bookId, chapterNum])
+}
+
+model AudioHistory {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  translationAbbr String
+  bookId          Int
+  bookName        String
+  chapterNum      Int
+  verseNum        Int?
+  positionSec     Float    @default(0)
+  durationSec     Float    @default(0)
+  playedAt        DateTime @default(now())
+
+  @@index([userId, playedAt(sort: Desc)])
+}
+
+// ==========================================
+// 4. PERSONAL STUDY: NOTES, BOOKMARKS, HIGHLIGHTS
+// ==========================================
+
+model NoteFolder {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  color     String     @default("#b4833e")
+  notes     UserNote[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([userId, name])
+}
+
+model UserNote {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId        String?
+  folder          NoteFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  title           String
+  content         String      @db.Text
+  bookId          Int?
+  bookName        String?
+  chapterNum      Int?
+  verseNum        Int?
+  referenceLabel  String?     // e.g. 'John 3:16'
+  translationAbbr String?
+  tags            String[]    @default([])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([userId, bookId, chapterNum])
+}
+
+model Bookmark {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId          Int
+  bookName        String
+  chapterNum      Int
+  verseNum        Int?
+  referenceLabel  String
+  translationAbbr String
+  note            String?
+  createdAt       DateTime @default(now())
+
+  @@unique([userId, bookId, chapterNum, verseNum])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+model Highlight {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId          Int
+  bookName        String
+  chapterNum      Int
+  verseNum        Int
+  translationAbbr String
+  color           String   @default("#fef08a") // gold, sage, sky, rose, lavender
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, bookId, chapterNum, verseNum])
+  @@index([userId, bookId, chapterNum])
+}
+
+// ==========================================
+// 5. READING HISTORY & READING PLANS
+// ==========================================
+
+model ReadingHistory {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  translationAbbr String
+  bookId          Int
+  bookName        String
+  chapterNum      Int
+  durationSec     Int      @default(0)
+  readAt          DateTime @default(now())
+
+  @@index([userId, readAt(sort: Desc)])
+}
+
+model ReadingPlan {
+  id          String                @id @default(cuid())
+  slug        String                @unique
+  title       String
+  description String                @db.Text
+  durationDays Int
+  category    String                // 'Foundational', 'New Testament', 'Wisdom', 'Full Bible', 'Custom'
+  isActive    Boolean               @default(true)
+  isFeatured  Boolean               @default(false)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  days        ReadingPlanDay[]
+  progress    ReadingPlanProgress[]
+}
+
+model ReadingPlanDay {
+  id         String      @id @default(cuid())
+  planId     String
+  plan       ReadingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayNumber  Int
+  title      String
+  passages   Json        // Array of { bookId, bookName, startChapter, endChapter }
+  reflection String?
+
+  @@unique([planId, dayNumber])
+}
+
+model ReadingPlanProgress {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId        String
+  plan          ReadingPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  status        String      @default("active") // 'active', 'paused', 'completed'
+  completedDays Int[]       @default([])
+  reminderTime  String?     // e.g. '08:00'
+  startedAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([userId, planId])
+}
+
+// ==========================================
+// 6. AI BIBLE STUDY ASSISTANT
+// ==========================================
+
+model AiConfig {
+  id                String   @id @default("default")
+  isEnabled         Boolean  @default(true)
+  provider          String   @default("openai") // 'openai', 'anthropic', 'gemini'
+  model             String   @default("gpt-4o-mini")
+  apiKeyEnc         String?  // Encrypted at rest
+  dailyGlobalLimit  Int      @default(5000)
+  monthlyGlobalLimit Int     @default(100000)
+  defaultUserDailyLimit Int  @default(30)
+  systemPromptExtra String?  @db.Text
+  updatedAt         DateTime @updatedAt
+}
+
+model AiConversation {
+  id             String      @id @default(cuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  contextRef     String?     // e.g., 'John 3:16'
+  totalTokens    Int         @default(0)
+  estimatedCost  Float       @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  messages       AiMessage[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+}
+
+model AiMessage {
+  id             String         @id @default(cuid())
+  conversationId String
+  conversation   AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String         // 'user', 'assistant'
+  content        String         @db.Text
+  tokensUsed     Int            @default(0)
+  createdAt      DateTime       @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// ==========================================
+// 7. ANALYTICS, NOTIFICATIONS & ADMIN SETTINGS
+// ==========================================
+
+model AnalyticsEvent {
+  id             String   @id @default(cuid())
+  eventType      String   // 'page_view', 'chapter_read', 'translation_switch', 'audio_play', 'ai_question', 'note_created', 'search'
+  visitorHash    String?  // Privacy-conscious salted daily/session hash (no raw IP stored)
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  isGuest        Boolean  @default(true)
+  path           String?
+  translationAbbr String?
+  bookId         Int?
+  chapterNum     Int?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([eventType, createdAt])
+  @@index([visitorHash, createdAt])
+  @@index([userId, createdAt])
+}
+
+model DailyAnalytics {
+  id             String   @id @default(cuid())
+  date           DateTime @unique @db.Date
+  pageViews      Int      @default(0)
+  uniqueVisitors Int      @default(0)
+  activeUsers    Int      @default(0)
+  newUsers       Int      @default(0)
+  chapterViews   Int      @default(0)
+  audioPlays     Int      @default(0)
+  aiQuestions    Int      @default(0)
+  notesCreated   Int      @default(0)
+  updatedAt      DateTime @updatedAt
+}
+
+model Notification {
+  id           String    @id @default(cuid())
+  title        String
+  message      String    @db.Text
+  type         String    @default("announcement") // 'announcement', 'reminder', 'system'
+  isActive     Boolean   @default(true)
+  scheduledFor DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+model AppSetting {
+  id        String   @id // e.g., 'branding', 'homepage', 'legal', 'system'
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model AdminActivityLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action    String
+  target    String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([adminId, createdAt(sort: Desc)])
+}

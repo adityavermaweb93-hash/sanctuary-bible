@@ -1,0 +1,16 @@
+{
+  "name": "Sanctuary Bible",
+  "short_name": "Sanctuary",
+  "description": "Premium English Bible reading and study application",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf8f3",
+  "theme_color": "#1b263b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
