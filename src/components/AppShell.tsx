@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,6 +19,8 @@ import {
   SkipBack,
   SkipForward,
   X,
+  Menu,
+  Info,
 } from "lucide-react";
 import { useApp } from "./AppContext";
 import { AiAssistantDrawer } from "./AiAssistantDrawer";
@@ -39,13 +41,13 @@ const MOBILE_NAV = [
   { href: "/bible", label: "Bible", icon: BookOpen },
   { href: "/search", label: "Search", icon: Search },
   { href: "/notes", label: "Notes", icon: NotebookPen },
-  { href: "/profile", label: "Profile", icon: User },
 ];
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const {
     user,
     branding,
@@ -177,7 +179,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className={`flex-1 ${audio.isOpen ? "pb-36 md:pb-24" : "pb-20 md:pb-8"}`}>
+      <main className={`flex-1 ${audio.isOpen ? "pb-36 lg:pb-24" : "pb-20 lg:pb-8"}`}>
         {children}
       </main>
 
@@ -199,7 +201,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Persistent Bottom Audio Player */}
       {audio.isOpen && (
         <div
-          className="fixed left-0 right-0 bottom-16 md:bottom-0 z-30 border-t px-4 py-2.5 shadow-lg backdrop-blur-md"
+          className="fixed left-0 right-0 bottom-16 lg:bottom-0 z-30 border-t px-4 py-2.5 shadow-lg backdrop-blur-md"
           style={{
             backgroundColor: "color-mix(in srgb, var(--bg-surface) 95%, transparent)",
             borderColor: "var(--border-subtle)",
@@ -301,12 +303,73 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
+      {/* Mobile Bottom Sheet Menu */}
+      {mobileMenuOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div
+            className="fixed inset-x-0 bottom-16 z-40 lg:hidden rounded-t-2xl border-t p-4 shadow-2xl"
+            style={{
+              backgroundColor: "var(--bg-surface)",
+              borderColor: "var(--border-subtle)",
+              paddingBottom: "calc(1rem + env(safe-area-inset-bottom))",
+            }}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                Menu
+              </span>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+                className="rounded-lg p-1 hover:opacity-75 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                ...DESKTOP_NAV,
+                { href: "/about", label: "About", icon: Info },
+                ...(user?.role === "admin" || user?.role === "editor"
+                  ? [{ href: "/admin", label: "Admin", icon: ShieldCheck }]
+                  : []),
+              ].map((item) => {
+                const Icon = item.icon;
+                const active =
+                  item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 text-xs font-medium transition"
+                    style={{
+                      borderColor: active ? "var(--accent-gold)" : "var(--border-subtle)",
+                      backgroundColor: active ? "var(--accent-gold-soft)" : "var(--bg-page)",
+                      color: active ? "var(--accent-gold)" : "var(--text-primary)",
+                    }}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="truncate max-w-full">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Mobile Bottom Navigation */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 flex lg:hidden h-16 items-center justify-around border-t"
+        className="fixed bottom-0 left-0 right-0 z-40 flex lg:hidden min-h-16 items-center justify-around border-t"
         style={{
           backgroundColor: "var(--bg-surface)",
           borderColor: "var(--border-subtle)",
+          paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
         {MOBILE_NAV.map((item) => {
@@ -317,6 +380,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setMobileMenuOpen(false)}
               className="flex flex-col items-center justify-center gap-0.5 px-2 py-1 text-[11px] font-medium"
               style={{
                 color: active ? "var(--accent-gold)" : "var(--text-muted)",
@@ -327,6 +391,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          aria-label="Open full menu"
+          className="flex flex-col items-center justify-center gap-0.5 px-2 py-1 text-[11px] font-medium cursor-pointer"
+          style={{
+            color: mobileMenuOpen ? "var(--accent-gold)" : "var(--text-muted)",
+          }}
+        >
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <span>Menu</span>
+        </button>
       </nav>
 
       {/* Floating AI Bible Study Assistant */}

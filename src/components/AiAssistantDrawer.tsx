@@ -105,7 +105,7 @@ export function AiAssistantDrawer() {
       <button
         onClick={() => setAiOpen(!aiOpen)}
         aria-label="Open AI Bible Study Assistant"
-        className="fixed right-4 bottom-20 md:bottom-6 z-40 flex h-13 w-13 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+        className="fixed right-4 bottom-20 lg:bottom-6 z-40 flex h-13 w-13 items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
         style={{
           backgroundColor: "var(--accent-gold)",
           color: "#ffffff",
@@ -117,7 +117,7 @@ export function AiAssistantDrawer() {
       {/* Chat Drawer */}
       {aiOpen && (
         <div
-          className="fixed right-4 bottom-36 md:bottom-22 z-50 flex h-[520px] max-h-[75vh] w-[calc(100vw-2rem)] max-w-md flex-col overflow-hidden rounded-2xl border shadow-2xl"
+          className="fixed right-4 bottom-36 lg:bottom-22 z-50 flex h-[520px] max-h-[75vh] w-[calc(100vw-2rem)] max-w-md flex-col overflow-hidden rounded-2xl border shadow-2xl"
           style={{
             backgroundColor: "var(--bg-surface)",
             borderColor: "var(--border-subtle)",

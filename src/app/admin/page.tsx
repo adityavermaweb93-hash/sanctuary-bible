@@ -361,11 +361,11 @@ export default function WordPressStyleAdminPage() {
       </header>
 
       <div className="flex flex-1">
-        {/* WordPress Left Sidebar */}
+        {/* WordPress Left Sidebar (Desktop) / Bottom Drawer (Mobile) */}
         <aside
           className={`${
-            mobileMenuOpen ? "block fixed inset-y-9 left-0 z-30" : "hidden"
-          } md:block w-52 shrink-0 bg-[#1d2327] text-[#f0f0f1] py-2 select-none`}
+            mobileMenuOpen ? "block fixed inset-x-0 bottom-14 top-9 z-30 overflow-y-auto" : "hidden"
+          } md:block md:w-52 shrink-0 bg-[#1d2327] text-[#f0f0f1] py-2 select-none`}
         >
           <nav className="space-y-0.5">
             {WP_MENU.map((item) => {
@@ -397,7 +397,7 @@ export default function WordPressStyleAdminPage() {
         </aside>
 
         {/* Main WP-Admin Workspace */}
-        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden space-y-5">
+        <main className="flex-1 p-4 pb-20 sm:p-6 md:pb-6 overflow-x-hidden space-y-5">
           {toast && (
             <div className="bg-white border-l-4 border-[#00a32a] border border-[#c3c4c7] px-4 py-2.5 text-xs font-medium flex items-center gap-2 shadow-sm">
               <CheckCircle2 className="h-4 w-4 text-[#00a32a]" />
@@ -1298,6 +1298,45 @@ export default function WordPressStyleAdminPage() {
           )}
         </main>
       </div>
+
+      {/* Mobile Admin Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-14 bg-[#1d2327] text-[#f0f0f1] border-t border-[#2c3338] flex items-center justify-around px-1">
+        {(
+          [
+            { id: "overview", label: "Dashboard", icon: Gauge },
+            { id: "translations", label: "Bible", icon: BookOpen },
+            { id: "content", label: "Content", icon: CalendarCheck },
+            { id: "users", label: "Users", icon: Users },
+          ] as const
+        ).map((item) => {
+          const Icon = item.icon;
+          const active = tab === item.id && !mobileMenuOpen;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setTab(item.id);
+                setMobileMenuOpen(false);
+              }}
+              className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1 text-[10px] font-medium cursor-pointer ${
+                active ? "text-[#72aee6]" : "text-[#c3c4c7]"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1 text-[10px] font-medium cursor-pointer ${
+            mobileMenuOpen ? "text-[#72aee6]" : "text-[#c3c4c7]"
+          }`}
+        >
+          {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+          <span>Menu</span>
+        </button>
+      </nav>
     </div>
   );
 }
