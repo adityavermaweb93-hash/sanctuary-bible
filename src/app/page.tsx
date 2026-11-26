@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   BookOpen,
   Bookmark,
@@ -12,6 +13,8 @@ import {
   ArrowRight,
   Sparkles,
   Bell,
+  Music,
+  MapPin,
 } from "lucide-react";
 import { useApp } from "@/components/AppContext";
 import { BIBLE_BOOKS } from "@/lib/bible/books";
@@ -152,6 +155,57 @@ export default function HomePage() {
             <Sparkles className="h-4 w-4" style={{ color: "var(--accent-gold)" }} />
             <span>Ask AI Assistant</span>
           </button>
+        </div>
+      </section>
+
+      {/* Newly Launched: The Jam Room by UD Sounds */}
+      <section
+        className="rounded-2xl border p-5 sm:p-6 shadow-sm overflow-hidden"
+        style={{
+          backgroundColor: "var(--bg-surface)",
+          borderColor: "var(--border-subtle)",
+        }}
+      >
+        <div className="grid gap-6 md:grid-cols-12 items-center">
+          <div className="md:col-span-5">
+            <div className="relative aspect-[4/4.5] w-full overflow-hidden rounded-xl border" style={{ borderColor: "var(--border-subtle)" }}>
+              <Image
+                src="/images/jam-room-launch.jpg"
+                alt="The Jam Room by UD Sounds — Rehearse, Record, Perform"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 420px"
+                priority
+              />
+            </div>
+          </div>
+          <div className="md:col-span-7 space-y-4">
+            <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider" style={{ backgroundColor: "var(--accent-gold-soft)", color: "var(--accent-gold)" }}>
+              <Music className="h-3.5 w-3.5" />
+              <span>Newly Launched</span>
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight">
+              The Jam Room by UD Sounds
+            </h2>
+            <p className="text-sm sm:text-base leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+              Rehearse, Record &amp; Perform in a private, comfortable sound room equipped with premium sound equipment and professional mic setup — perfect for worship teams, choirs, bands, and groups.
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs font-medium">
+              <span className="rounded-lg border px-2.5 py-1" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-page)" }}>
+                Premium Sound Equipment
+              </span>
+              <span className="rounded-lg border px-2.5 py-1" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-page)" }}>
+                Professional Mic Setup
+              </span>
+              <span className="rounded-lg border px-2.5 py-1" style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-page)" }}>
+                Private &amp; Comfortable
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+              <MapPin className="h-4 w-4 shrink-0" style={{ color: "var(--accent-gold)" }} />
+              <span>The Courtyard, Kuda Village (Near Greenwood School)</span>
+            </div>
+          </div>
         </div>
       </section>
 

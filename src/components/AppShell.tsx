@@ -25,8 +25,6 @@ import {
 import { useApp } from "./AppContext";
 import { AiAssistantDrawer } from "./AiAssistantDrawer";
 import { VerseOfTheDayModal } from "./VerseOfTheDayModal";
-import { BibleCoverSplash } from "./BibleCoverSplash";
-import { JamRoomLaunchModal } from "./JamRoomLaunchModal";
 
 const DESKTOP_NAV = [
   { href: "/", label: "Home", icon: Home },
@@ -415,10 +413,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AiAssistantDrawer />
       {/* Verse of the Day Login Popup */}
       <VerseOfTheDayModal />
-      {/* Newly Launched Jam Room Popup */}
-      <JamRoomLaunchModal />
-      {/* Opening Holy Bible Book Cover */}
-      <BibleCoverSplash />
     </div>
   );
 }
