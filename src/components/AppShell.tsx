@@ -68,10 +68,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ filter: `brightness(${preferences.brightness}%)` }}
-    >
+    <div className="min-h-screen flex flex-col">
+      {preferences.brightness < 100 && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-[60] bg-black transition-opacity"
+          style={{ opacity: Math.min(0.75, (100 - preferences.brightness) / 100) }}
+        />
+      )}
       {/* Desktop & Tablet Top Header */}
       <header
         className="sticky top-0 z-30 border-b backdrop-blur-md"
