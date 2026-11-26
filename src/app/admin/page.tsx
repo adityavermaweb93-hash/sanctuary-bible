@@ -106,6 +106,10 @@ export default function WordPressStyleAdminPage() {
   >([]);
   const [roles, setRoles] = useState<Array<{ id: string; name: string }>>([]);
   const [userSearch, setUserSearch] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   // AI Config
   const [aiForm, setAiForm] = useState({
@@ -290,20 +294,94 @@ export default function WordPressStyleAdminPage() {
   }
 
   if (!user || (user.role !== "admin" && user.role !== "editor")) {
+    const handleAdminLogin = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoginError("");
+      setLoginLoading(true);
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: loginEmail.trim(), password: loginPassword }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setLoginError(data.error || "Invalid email or password.");
+          setLoginLoading(false);
+          return;
+        }
+        await refreshUser();
+        if (data.user?.role !== "admin" && data.user?.role !== "editor") {
+          setLoginError("This account does not have administrator permissions.");
+        }
+      } catch {
+        setLoginError("Unable to reach the login server. Please try again.");
+      } finally {
+        setLoginLoading(false);
+      }
+    };
+
     return (
-      <div className="min-h-screen bg-[#f0f0f1] text-[#1d2327] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white border border-[#c3c4c7] p-6 shadow-sm text-center space-y-4">
-          <ShieldAlert className="h-10 w-10 mx-auto text-[#d63638]" />
-          <h1 className="text-lg font-semibold">Admin Access Required</h1>
-          <p className="text-xs text-[#50575e]">
-            Sign in with an administrator account to access the WordPress-style backend.
-          </p>
-          <Link
-            href="/profile"
-            className="inline-block bg-[#2271b1] hover:bg-[#135e96] text-white text-xs font-medium px-4 py-2 rounded-sm"
+      <div className="min-h-screen bg-[#f0f0f1] text-[#1d2327] flex items-center justify-center p-4 font-sans">
+        <div className="max-w-sm w-full space-y-4">
+          <div className="text-center space-y-1">
+            <BookOpen className="h-9 w-9 mx-auto text-[#2271b1]" />
+            <h1 className="text-xl font-semibold">{branding.appName} Admin</h1>
+            <p className="text-xs text-[#50575e]">
+              Sign in with an administrator account to continue.
+            </p>
+          </div>
+
+          <form
+            onSubmit={handleAdminLogin}
+            className="bg-white border border-[#c3c4c7] p-5 shadow-sm space-y-4"
           >
-            Log In
-          </Link>
+            {user && user.role !== "admin" && user.role !== "editor" && (
+              <div className="border-l-4 border-[#d63638] bg-[#fcf0f1] px-3 py-2 text-xs text-[#1d2327]">
+                Currently signed in as <strong>{user.email}</strong> ({user.role}). Please sign in with an admin account.
+              </div>
+            )}
+            {loginError && (
+              <div className="border-l-4 border-[#d63638] bg-[#fcf0f1] px-3 py-2 text-xs text-[#d63638]">
+                {loginError}
+              </div>
+            )}
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-[#1d2327]">Email Address</span>
+              <input
+                type="email"
+                required
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="adityavermaweb93@gmail.com"
+                className="w-full border border-[#8c8f94] rounded-sm px-2.5 py-2 text-sm bg-white outline-none focus:border-[#2271b1]"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-medium text-[#1d2327]">Password</span>
+              <input
+                type="password"
+                required
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                placeholder="••••••••••••"
+                className="w-full border border-[#8c8f94] rounded-sm px-2.5 py-2 text-sm bg-white outline-none focus:border-[#2271b1]"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full bg-[#2271b1] hover:bg-[#135e96] disabled:opacity-60 text-white text-xs font-medium px-4 py-2.5 rounded-sm cursor-pointer"
+            >
+              {loginLoading ? "Signing in…" : "Log In"}
+            </button>
+          </form>
+
+          <div className="text-center">
+            <Link href="/" className="text-xs text-[#50575e] hover:text-[#2271b1]">
+              ← Back to {branding.appName}
+            </Link>
+          </div>
         </div>
       </div>
     );
